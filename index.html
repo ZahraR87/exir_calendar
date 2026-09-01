@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقویم شمسی</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">تقویم شخصی</div>
+        <h1>تقویم شمسی</h1>
+      </div>
+
+      <div class="top-actions">
+        <button class="button secondary" id="todayBtn">امروز</button>
+        <button class="button secondary" id="printBtn">🖨 چاپ</button>
+        <button class="button primary" id="modeBtn">حالت نمایش</button>
+      </div>
+    </header>
+
+    <main>
+      <section class="calendar-card">
+        <div class="calendar-toolbar">
+          <div class="month-navigation">
+            <button class="icon-button" id="nextMonthBtn" aria-label="ماه بعد">‹</button>
+            <div class="month-title">
+              <h2 id="monthTitle">شهریور ۱۴۰۵</h2>
+              <div id="gregorianHint"></div>
+            </div>
+            <button class="icon-button" id="prevMonthBtn" aria-label="ماه قبل">›</button>
+          </div>
+
+          <div class="legend">
+            <span><i class="dot event-dot"></i> رویداد</span>
+            <span><i class="dot today-dot"></i> امروز</span>
+          </div>
+        </div>
+
+        <div class="calendar-wrap">
+          <div class="weekdays" id="weekdays"></div>
+          <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop hidden" id="eventModal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="modal-close" id="closeModalBtn" aria-label="بستن">×</button>
+
+      <div class="modal-header">
+        <div class="eyebrow">رویداد</div>
+        <h3 id="modalTitle">افزودن رویداد</h3>
+        <p id="selectedDateLabel"></p>
+      </div>
+
+      <form id="eventForm">
+        <input type="hidden" id="eventId">
+
+        <label>
+          عنوان
+          <input id="eventTitle" type="text" maxlength="80" required placeholder="مثلاً جلسه، تولد، قرار..." autocomplete="off">
+        </label>
+
+        <label>
+          توضیحات
+          <textarea id="eventDescription" maxlength="500" rows="4" placeholder="توضیحات اختیاری"></textarea>
+        </label>
+
+        <div class="form-row">
+          <label>
+            زمان
+            <input id="eventTime" type="time">
+          </label>
+
+          <label>
+            رنگ
+            <select id="eventColor">
+              <option value="blue">آبی</option>
+              <option value="green">سبز</option>
+              <option value="orange">نارنجی</option>
+              <option value="red">قرمز</option>
+              <option value="purple">بنفش</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="button danger hidden" id="deleteEventBtn">حذف</button>
+          <div class="form-actions-right">
+            <button type="button" class="button secondary" id="cancelBtn">لغو</button>
+            <button type="submit" class="button primary">ذخیره</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
