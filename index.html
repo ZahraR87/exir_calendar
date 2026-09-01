@@ -3,20 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تقویم بازدید گلخانه بلوبری</title>
+  <title>تقویم شمسی</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow">اکسیر صنعت باختری</div>
-        <h1>تقویم بازدید گلخانه بلوبری</h1>
+        <div class="eyebrow">تقویم شخصی</div>
+        <h1>تقویم شمسی</h1>
       </div>
-
       <div class="top-actions">
         <button class="button secondary" id="todayBtn">امروز</button>
         <button class="button secondary" id="printBtn">🖨 چاپ</button>
+        <button class="button secondary" id="syncBtn">☁ همگام‌سازی</button>
         <button class="button primary" id="modeBtn">حالت نمایش</button>
       </div>
     </header>
@@ -28,13 +28,12 @@
             <button class="icon-button" id="nextMonthBtn" aria-label="ماه بعد">‹</button>
             <div class="month-title">
               <h2 id="monthTitle">شهریور ۱۴۰۵</h2>
-              <div id="gregorianHint"></div>
             </div>
             <button class="icon-button" id="prevMonthBtn" aria-label="ماه قبل">›</button>
           </div>
-
           <div class="legend">
             <span><i class="dot event-dot"></i> رویداد</span>
+            <span><i class="dot off-dot"></i> تعطیل</span>
             <span><i class="dot today-dot"></i> امروز</span>
           </div>
         </div>
@@ -47,12 +46,12 @@
     </main>
   </div>
 
+  <!-- Event / day editor -->
   <div class="modal-backdrop hidden" id="eventModal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal" role="dialog" aria-modal="true">
       <button class="modal-close" id="closeModalBtn" aria-label="بستن">×</button>
-
       <div class="modal-header">
-        <div class="eyebrow">رویداد</div>
+        <div class="eyebrow">مدیریت روز</div>
         <h3 id="modalTitle">افزودن رویداد</h3>
         <p id="selectedDateLabel"></p>
       </div>
@@ -60,36 +59,45 @@
       <form id="eventForm">
         <input type="hidden" id="eventId">
 
-        <label>
-          عنوان
-          <input id="eventTitle" type="text" maxlength="80" required placeholder="مثلاً جلسه، تولد، قرار..." autocomplete="off">
-        </label>
+        <div class="day-status-row">
+          <label class="switch-label">
+            <input type="checkbox" id="offDay">
+            <span class="switch"></span>
+            <span>این روز تعطیل / خارج از برنامه باشد</span>
+          </label>
+        </div>
 
-        <label>
-          توضیحات
-          <textarea id="eventDescription" maxlength="500" rows="4" placeholder="توضیحات اختیاری"></textarea>
-        </label>
-
-        <div class="form-row">
+        <div id="eventFields">
           <label>
-            زمان
-            <input id="eventTime" type="time">
+            عنوان
+            <input id="eventTitle" type="text" maxlength="80" required placeholder="مثلاً جلسه، تولد، قرار..." autocomplete="off">
           </label>
 
           <label>
+            توضیحات
+            <textarea id="eventDescription" maxlength="500" rows="4" placeholder="توضیحات اختیاری"></textarea>
+          </label>
+
+          <div class="form-row time-row">
+            <label>
+              شروع
+              <input id="eventStartTime" type="time">
+            </label>
+            <label>
+              پایان
+              <input id="eventEndTime" type="time">
+            </label>
+          </div>
+
+          <label>
             رنگ
-            <select id="eventColor">
-              <option value="blue">آبی</option>
-              <option value="green">سبز</option>
-              <option value="orange">نارنجی</option>
-              <option value="red">قرمز</option>
-              <option value="purple">بنفش</option>
-            </select>
+            <div class="color-picker" id="colorPicker"></div>
+            <input type="hidden" id="eventColor" value="blue">
           </label>
         </div>
 
         <div class="form-actions">
-          <button type="button" class="button danger hidden" id="deleteEventBtn">حذف</button>
+          <button type="button" class="button danger hidden" id="deleteEventBtn">حذف رویداد</button>
           <div class="form-actions-right">
             <button type="button" class="button secondary" id="cancelBtn">لغو</button>
             <button type="submit" class="button primary">ذخیره</button>
@@ -99,8 +107,56 @@
     </div>
   </div>
 
-  <div class="toast hidden" id="toast"></div>
+  <!-- GitHub sync -->
+  <div class="modal-backdrop hidden" id="syncModal">
+    <div class="modal sync-modal" role="dialog" aria-modal="true">
+      <button class="modal-close" id="closeSyncBtn" aria-label="بستن">×</button>
+      <div class="modal-header">
+        <div class="eyebrow">ذخیره‌سازی مشترک</div>
+        <h3>همگام‌سازی با GitHub</h3>
+        <p>این بخش برای مدیر سایت است. اطلاعات ورود در کد سایت قرار نمی‌گیرد.</p>
+      </div>
 
+      <div class="info-box">
+        برای این نسخه، GitHub به‌عنوان محل ذخیره رویدادها استفاده می‌شود.
+        یک Fine-grained Personal Access Token بسازید که فقط دسترسی
+        <strong>Contents: Read and write</strong> به همین repository داشته باشد.
+        توکن فقط در همین مرورگر و در <strong>session</strong> نگهداری می‌شود.
+      </div>
+
+      <label>
+        نام کاربری GitHub
+        <input id="githubOwner" placeholder="مثلاً zahrar87" autocomplete="username">
+      </label>
+
+      <label>
+        نام repository
+        <input id="githubRepo" placeholder="مثلاً exir_calendar">
+      </label>
+
+      <label>
+        Branch
+        <input id="githubBranch" value="main">
+      </label>
+
+      <label>
+        GitHub Personal Access Token
+        <input id="githubToken" type="password" placeholder="github_pat_..." autocomplete="off">
+      </label>
+
+      <div class="sync-status" id="syncStatus"></div>
+
+      <div class="form-actions">
+        <button type="button" class="button danger" id="clearGithubBtn">پاک کردن ورود</button>
+        <div class="form-actions-right">
+          <button type="button" class="button secondary" id="cancelSyncBtn">لغو</button>
+          <button type="button" class="button primary" id="saveGithubBtn">ذخیره و دریافت</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast hidden" id="toast"></div>
   <script src="app.js"></script>
 </body>
 </html>
