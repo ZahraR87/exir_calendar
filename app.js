@@ -82,6 +82,7 @@ function init() {
   $("closeSyncBtn").addEventListener("click", closeSyncModal);
   $("cancelSyncBtn").addEventListener("click", closeSyncModal);
   $("saveGithubBtn").addEventListener("click", connectGithub);
+  $("saveGithubManualBtn").addEventListener("click", manualSaveToGithub);
   $("logoutBtn").addEventListener("click", logout);
   $("closeAdminBtn").addEventListener("click", closeSyncModal);
   $("offDay").addEventListener("change", toggleOffDayFields);
@@ -483,6 +484,38 @@ async function connectGithub() {
     sessionStorage.removeItem(GITHUB_SESSION_KEY);
     updateModeButton();
     syncStatus.textContent = githubErrorMessage(err);
+  }
+}
+
+let githubSaveInProgress = false;
+
+async function manualSaveToGithub() {
+  const s = getGithubSession();
+  if (!s || githubSaveInProgress) return;
+
+  const button = $("saveGithubManualBtn");
+  const status = $("adminSyncStatus");
+  const pill = $("saveStatusPill");
+
+  githubSaveInProgress = true;
+  button.disabled = true;
+  button.textContent = "در حال ذخیره...";
+  if (pill) pill.textContent = "در حال ذخیره...";
+  if (status) status.textContent = "در حال ذخیره آخرین تغییرات در GitHub...";
+
+  try {
+    await githubPutFile(s, data, "Update calendar data");
+    if (pill) pill.textContent = "همگام";
+    if (status) status.textContent = "آخرین تغییرات با موفقیت در GitHub ذخیره شد.";
+    showToast("در GitHub ذخیره شد");
+  } catch (err) {
+    if (pill) pill.textContent = "ذخیره نشد";
+    if (status) status.textContent = githubErrorMessage(err);
+    showToast("ذخیره در GitHub انجام نشد؛ تغییرات محلی شما باقی مانده‌اند");
+  } finally {
+    githubSaveInProgress = false;
+    button.disabled = false;
+    button.textContent = "ذخیره در GitHub";
   }
 }
 
