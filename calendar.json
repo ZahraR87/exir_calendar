@@ -53,10 +53,18 @@
       "startTime": "",
       "endTime": "",
       "color": "blue"
+    },
+    {
+      "id": "27fa61df-1961-4be4-a5d6-3ce170348dc8",
+      "date": "1405-06-02",
+      "title": "kk",
+      "description": "",
+      "startTime": "",
+      "endTime": "",
+      "color": "blue"
     }
   ],
   "offDays": [
-    "1405-06-02",
     "1405-06-23",
     "1405-06-17"
   ]
