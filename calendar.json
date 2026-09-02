@@ -1,14 +1,4 @@
 {
-  "events": [
-    {
-      "id": "7cd179d7-1821-468a-8796-e4eaba6f1e3a",
-      "date": "1405-06-10",
-      "title": "da",
-      "description": "",
-      "startTime": "",
-      "endTime": "",
-      "color": "blue"
-    }
-  ],
+  "events": [],
   "offDays": []
 }
