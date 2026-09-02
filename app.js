@@ -251,7 +251,7 @@ function openEditModal(ev) {
 
 function toggleOffDayFields() {
   eventFields.classList.toggle("hidden", offDay.checked);
-  eventTitle.required = !offDay.checked;
+  eventTitle.required = false;
 }
 
 function closeModal() {
@@ -287,7 +287,7 @@ function saveEvent(e) {
   // an event, remove the off-day and leave the date empty.
   if (wasOffDay) {
     data.offDays = data.offDays.filter(d => d !== dateKey);
-    if (!eventTitle.value.trim() && !id) {
+    if (!eventTitle.value.trim()) {
       saveLocal();
       closeModal();
       render();
