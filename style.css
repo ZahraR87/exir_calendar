@@ -151,3 +151,6 @@ body.view-mode .day-cell.off-day { background:repeating-linear-gradient(135deg,#
 .admin-status-card strong { display:block; margin-bottom:3px; }
 .admin-status-card span:not(.status-pill) { display:block; color:var(--muted); font-size:11px; direction:ltr; text-align:right; }
 .status-pill { padding:5px 9px; border-radius:999px; background:#dcfce7; color:#166534; font-size:11px; font-weight:700; white-space:nowrap; }
+
+/* Extra visual spacing for the management/view mode toggle. */
+#adminModeToggle { margin: 4px 2px; }

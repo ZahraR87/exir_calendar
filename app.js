@@ -25,6 +25,7 @@ const TEHRAN_TZ = "Asia/Tehran";
 let current = todayJalali();
 let data = loadData();
 let selectedJalaliDate = null;
+let modalWasOffDay = false;
 let toastTimer = null;
 
 const $ = id => document.getElementById(id);
@@ -213,6 +214,7 @@ function openDayModal(dateKey) {
   selectColor("blue");
 
   const off = data.offDays.includes(dateKey);
+  modalWasOffDay = off;
   offDay.checked = off;
   toggleOffDayFields();
 
@@ -235,7 +237,8 @@ function openEditModal(ev) {
   eventColor.value = ev.color || "blue";
   selectColor(eventColor.value);
 
-  offDay.checked = data.offDays.includes(ev.date);
+  modalWasOffDay = data.offDays.includes(ev.date);
+  offDay.checked = modalWasOffDay;
   toggleOffDayFields();
 
   modalTitle.textContent = "ویرایش رویداد";
@@ -248,7 +251,8 @@ function openEditModal(ev) {
 
 function toggleOffDayFields() {
   eventFields.classList.toggle("hidden", offDay.checked);
-  eventTitle.required = !offDay.checked;
+  // The title is validated manually so an existing off-day can be cleared without filling the form.
+  eventTitle.required = false;
 }
 
 function closeModal() {
@@ -262,34 +266,43 @@ function saveEvent(e) {
   if (!selectedJalaliDate) return;
 
   const dateKey = makeDateKey(selectedJalaliDate.year, selectedJalaliDate.month, selectedJalaliDate.day);
-
-  // Off-day is a property of the whole date.
-  if (offDay.checked) {
-    if (!data.offDays.includes(dateKey)) data.offDays.push(dateKey);
-  } else {
-    data.offDays = data.offDays.filter(d => d !== dateKey);
-  }
-
   const id = eventId.value;
   const existing = data.events.findIndex(ev => ev.id === id);
+  const title = eventTitle.value.trim();
 
+  // Marking a day as off never requires any other field.
   if (offDay.checked) {
-    // Do not create an event when the user is only marking the day off.
+    if (!data.offDays.includes(dateKey)) data.offDays.push(dateKey);
     if (existing >= 0) data.events.splice(existing, 1);
     saveLocal();
     closeModal();
     render();
     showToast("روز به‌عنوان تعطیل ذخیره شد");
-      return;
+    return;
   }
 
-  const title = eventTitle.value.trim();
-  if (!title) return;
+  // If this day was already an off-day, unchecking the switch alone is enough to make it available again.
+  if (modalWasOffDay && !title) {
+    data.offDays = data.offDays.filter(d => d !== dateKey);
+    saveLocal();
+    closeModal();
+    render();
+    showToast("تعطیلی روز حذف شد");
+    return;
+  }
+
+  if (!title) {
+    showToast("لطفاً عنوان رویداد را وارد کنید");
+    eventTitle.focus();
+    return;
+  }
 
   if (eventStartTime.value && eventEndTime.value && eventEndTime.value < eventStartTime.value) {
     showToast("زمان پایان نمی‌تواند قبل از زمان شروع باشد");
     return;
   }
+
+  data.offDays = data.offDays.filter(d => d !== dateKey);
 
   const item = {
     id: id || crypto.randomUUID(),
@@ -299,20 +312,16 @@ function saveEvent(e) {
     description: eventDescription.value.trim(),
     startTime: eventStartTime.value,
     endTime: eventEndTime.value,
-    color: eventColor.value
+    color: eventColor.value || "blue"
   };
 
-  if (existing >= 0) {
-    data.events[existing] = item;
-    showToast("رویداد ویرایش شد");
-  } else {
-    data.events.push(item);
-    showToast("رویداد اضافه شد");
-  }
+  if (existing >= 0) data.events[existing] = item;
+  else data.events.push(item);
 
   saveLocal();
   closeModal();
   render();
+  showToast(id ? "رویداد ویرایش شد" : "رویداد اضافه شد");
 }
 
 function deleteEvent() {
