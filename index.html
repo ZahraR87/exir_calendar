@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تقویم شمسی</title>
+  <title>تقویم بازدید گلخانه بلوبری</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -65,7 +65,7 @@
         <div id="eventFields">
           <label>
             عنوان
-            <input id="eventTitle" type="text" maxlength="80" required placeholder="مثلاً جلسه، تولد، قرار..." autocomplete="off">
+            <input id="eventTitle" type="text" maxlength="80" required placeholder="" autocomplete="off">
           </label>
 
           <label>
@@ -118,9 +118,26 @@
       </div>
       <div id="adminPanel" class="hidden">
         <div class="admin-status-card"><div><strong>حالت مدیریت فعال است</strong><span id="adminRepoLabel"></span></div><span class="status-pill" id="saveStatusPill">همگام</span></div>
-        <div class="info-box">هر بار که رویدادی اضافه، ویرایش یا حذف می‌کنید، اطلاعات ابتدا در مرورگر ذخیره می‌شود و سپس <strong>به‌صورت خودکار به GitHub ارسال می‌شود.</strong> تا وقتی پیام «در GitHub ذخیره شد» را نبینید، تغییر را قطعی ذخیره‌شده روی GitHub در نظر نگیرید.</div>
+        <div class="info-box">از این بخش می‌توانید فایل تقویم را دانلود یا بارگذاری کنید، اطلاعات مشترک تقویم را از GitHub دریافت کنید، یا تغییرات را در GitHub ذخیره کنید.</div>
+        <div class="manage-tools">
+          <div class="manage-tool-group">
+            <div class="manage-tool-title">فایل تقویم</div>
+            <div class="manage-tool-buttons">
+              <button type="button" class="button secondary" id="downloadCalendarBtn">دانلود تقویم</button>
+              <button type="button" class="button secondary" id="uploadCalendarBtn">بارگذاری تقویم</button>
+              <input type="file" id="calendarFileInput" accept="application/json,.json" hidden>
+            </div>
+          </div>
+          <div class="manage-tool-group">
+            <div class="manage-tool-title">GitHub</div>
+            <div class="manage-tool-buttons">
+              <button type="button" class="button secondary" id="refreshGithubBtn">دریافت از GitHub</button>
+              <button type="button" class="button primary" id="saveGithubManualBtn">ذخیره در GitHub</button>
+            </div>
+          </div>
+        </div>
         <div class="sync-status" id="adminSyncStatus"></div>
-        <div class="form-actions"><button type="button" class="button danger" id="logoutBtn">خروج مدیر</button><div class="form-actions-right"><button type="button" class="button secondary" id="refreshGithubBtn">دریافت از GitHub</button><button type="button" class="button primary" id="closeAdminBtn">بستن</button></div></div>
+        <div class="form-actions"><button type="button" class="button danger" id="logoutBtn">خروج مدیر</button><div class="form-actions-right"><button type="button" class="button primary" id="closeAdminBtn">بستن</button></div></div>
       </div>
     </div>
   </div>
