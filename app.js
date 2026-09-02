@@ -71,18 +71,12 @@ function init() {
   $("todayBtn").addEventListener("click", () => { current = todayJalali(); render(); });
   $("printBtn").addEventListener("click", () => window.print());
 
-  $("adminModeToggle").addEventListener("click", () => {
-    if (document.body.classList.contains("view-mode")) enterAdminMode();
-    else enterViewMode();
-  });
-
   $("syncBtn").addEventListener("click", openSyncModal);
   $("closeModalBtn").addEventListener("click", closeModal);
   $("cancelBtn").addEventListener("click", closeModal);
   $("closeSyncBtn").addEventListener("click", closeSyncModal);
   $("cancelSyncBtn").addEventListener("click", closeSyncModal);
   $("saveGithubBtn").addEventListener("click", connectGithub);
-  $("saveGithubManualBtn").addEventListener("click", manualSaveToGithub);
   $("logoutBtn").addEventListener("click", logout);
   $("closeAdminBtn").addEventListener("click", closeSyncModal);
   $("offDay").addEventListener("change", toggleOffDayFields);
@@ -389,8 +383,12 @@ function getGithubSession() {
 
 function openSyncModal() {
   const s = getGithubSession();
-  if (s) showAdminPanel(s);
-  else showLoginPanel();
+  if (s) {
+    enterAdminMode();
+    showAdminPanel(s);
+  } else {
+    showLoginPanel();
+  }
   syncModal.classList.remove("hidden");
   updateModeButton();
 }
@@ -409,7 +407,7 @@ function showLoginPanel(){
 
 function showAdminPanel(s){
   $("syncTitle").textContent="مدیریت تقویم";
-  $("syncDescription").textContent="شما وارد شده‌اید. ابتدا با کلید زیر حالت مدیریت را فعال کنید.";
+  $("syncDescription").textContent="شما وارد شده‌اید و حالت مدیریت فعال است.";
   $("loginPanel").classList.add("hidden");
   $("adminPanel").classList.remove("hidden");
   $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`;
@@ -423,12 +421,7 @@ function closeSyncModal() {
 
 function updateModeButton(){
   const loggedIn = !!getGithubSession();
-  const isView = document.body.classList.contains("view-mode");
   $("syncBtn").textContent = loggedIn ? "مدیریت" : "ورود مدیر";
-  const toggle = $("adminModeToggle");
-  const status = $("adminModeStatus");
-  if (toggle) toggle.textContent = isView ? "حالت مدیریت" : "حالت نمایش";
-  if (status) status.textContent = isView ? "حالت نمایش فعال است" : "حالت مدیریت فعال است";
 }
 
 function enterAdminMode(){
@@ -473,10 +466,12 @@ async function connectGithub() {
       saveLocal();
       render();
       sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
+      enterAdminMode();
       syncStatus.textContent = "تقویم از GitHub دریافت شد.";
       showAdminPanel(s);
     } else {
       sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
+      enterAdminMode();
       syncStatus.textContent = "calendar.json هنوز در GitHub وجود ندارد. بعد از ورود، با «ذخیره در GitHub» آن را ایجاد کنید.";
       showAdminPanel(s);
     }
@@ -484,38 +479,6 @@ async function connectGithub() {
     sessionStorage.removeItem(GITHUB_SESSION_KEY);
     updateModeButton();
     syncStatus.textContent = githubErrorMessage(err);
-  }
-}
-
-let githubSaveInProgress = false;
-
-async function manualSaveToGithub() {
-  const s = getGithubSession();
-  if (!s || githubSaveInProgress) return;
-
-  const button = $("saveGithubManualBtn");
-  const status = $("adminSyncStatus");
-  const pill = $("saveStatusPill");
-
-  githubSaveInProgress = true;
-  button.disabled = true;
-  button.textContent = "در حال ذخیره...";
-  if (pill) pill.textContent = "در حال ذخیره...";
-  if (status) status.textContent = "در حال ذخیره آخرین تغییرات در GitHub...";
-
-  try {
-    await githubPutFile(s, data, "Update calendar data");
-    if (pill) pill.textContent = "همگام";
-    if (status) status.textContent = "آخرین تغییرات با موفقیت در GitHub ذخیره شد.";
-    showToast("در GitHub ذخیره شد");
-  } catch (err) {
-    if (pill) pill.textContent = "ذخیره نشد";
-    if (status) status.textContent = githubErrorMessage(err);
-    showToast("ذخیره در GitHub انجام نشد؛ تغییرات محلی شما باقی مانده‌اند");
-  } finally {
-    githubSaveInProgress = false;
-    button.disabled = false;
-    button.textContent = "ذخیره در GitHub";
   }
 }
 
