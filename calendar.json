@@ -53,20 +53,10 @@
       "startTime": "",
       "endTime": "",
       "color": "blue"
-    },
-    {
-      "id": "629b1276-7c13-4e6f-9b61-7d7e78ce8f30",
-      "date": "1405-06-09",
-      "title": "snsvns",
-      "description": "cdsc ds",
-      "startTime": "",
-      "endTime": "",
-      "color": "gray"
     }
   ],
   "offDays": [
     "1405-06-02",
-    "1405-06-24",
     "1405-06-23",
     "1405-06-17"
   ]
