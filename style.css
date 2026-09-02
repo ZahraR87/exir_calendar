@@ -54,7 +54,7 @@ h1 { margin-bottom:0; font-size:clamp(25px,4vw,36px); }
 .day-cell:hover { background:#fbfdff; }
 .day-cell.empty { background:#fafafa; }
 .day-cell.today { box-shadow:inset 0 0 0 2px var(--primary); z-index:1; }
-.day-cell.off-day { background:repeating-linear-gradient(135deg,#fff,#fff 8px,#fef2f2 8px,#fef2f2 11px); }
+.day-cell.off-day { background:repeating-linear-gradient(135deg,#fff,#fff 8px,#fca5a5 8px,#fca5a5 11px); }
 .day-number { width:32px; height:32px; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:15px; margin-bottom:7px; }
 .today .day-number { background:var(--primary); color:#fff; }
 .add-hint { color:#b3bac5; font-size:11px; opacity:0; transition:opacity .12s ease; }
@@ -121,7 +121,7 @@ textarea { resize:vertical; }
 body.view-mode .day-cell { cursor:default; }
 body.view-mode .day-cell:hover { background:white; }
 body.view-mode .add-hint { display:none; }
-body.view-mode .day-cell.off-day { background:repeating-linear-gradient(135deg,#fff,#fff 8px,#fef2f2 8px,#fef2f2 11px); }
+body.view-mode .day-cell.off-day { background:repeating-linear-gradient(135deg,#fff,#fff 8px,#fca5a5 8px,#fca5a5 11px); }
 
 .toast { position:fixed; bottom:22px; left:50%; transform:translateX(-50%); background:#111827; color:#fff; padding:10px 17px; border-radius:10px; font-size:13px; z-index:200; box-shadow:0 8px 25px #0003; }
 
@@ -152,7 +152,5 @@ body.view-mode .day-cell.off-day { background:repeating-linear-gradient(135deg,#
 .admin-status-card span:not(.status-pill) { display:block; color:var(--muted); font-size:11px; direction:ltr; text-align:right; }
 .status-pill { padding:5px 9px; border-radius:999px; background:#dcfce7; color:#166534; font-size:11px; font-weight:700; white-space:nowrap; }
 
-.manage-tools { display:grid; gap:14px; margin-bottom:16px; }
-.manage-tool-group { border:1px solid var(--border); border-radius:12px; padding:13px; background:var(--surface-soft); }
-.manage-tool-title { font-weight:700; margin-bottom:9px; }
-.manage-tool-buttons { display:flex; flex-wrap:wrap; gap:8px; }
+#modeBtn { display:none; }
+#modeBtn.management-visible { display:inline-flex; }
