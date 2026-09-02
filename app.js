@@ -60,8 +60,9 @@ init();
 
 function init() {
   buildColorPicker();
-  $("modeBtn").textContent = "حالت مدیریت";
+  updateModeButton();
   render();
+  loadPublicCalendar();
 
   $("prevMonthBtn").addEventListener("click", () => { current = addJalaliMonths(current, -1); render(); });
   $("nextMonthBtn").addEventListener("click", () => { current = addJalaliMonths(current, 1); render(); });
@@ -70,7 +71,11 @@ function init() {
 
   $("modeBtn").addEventListener("click", () => {
     const session = getGithubSession();
-    if (document.body.classList.contains("view-mode")) { if (session) enterAdminMode(); else openSyncModal(); }
+    if (!session) {
+      showToast("برای ورود به مدیریت، از دکمه «ورود مدیر» استفاده کنید");
+      return;
+    }
+    if (document.body.classList.contains("view-mode")) enterAdminMode();
     else enterViewMode();
   });
 
@@ -352,6 +357,24 @@ function formatTimeRange(start, end) {
   return start ? toPersianDigits(start) : toPersianDigits(end);
 }
 
+/* ---------- Public shared calendar ---------- */
+
+async function loadPublicCalendar() {
+  // The repository is public, so visitors can read calendar.json without logging in.
+  // This is what makes the same calendar appear on other phones/computers.
+  const url = "https://raw.githubusercontent.com/zahrar87/exir_calendar/main/calendar.json";
+  try {
+    const res = await fetch(`${url}?t=${Date.now()}`, {cache: "no-store"});
+    if (!res.ok) return;
+    const remote = normalizeData(await res.json());
+    data = remote;
+    saveLocal();
+    render();
+  } catch (err) {
+    console.warn("Public calendar could not be loaded:", err);
+  }
+}
+
 /* ---------- GitHub storage ---------- */
 
 function getGithubSession() {
@@ -360,15 +383,30 @@ function getGithubSession() {
 }
 
 function openSyncModal() { const s=getGithubSession(); if(s) showAdminPanel(s); else showLoginPanel(); syncModal.classList.remove("hidden"); }
-function showLoginPanel(){ $("syncTitle").textContent="ورود مدیر"; $("syncDescription").textContent="برای تغییر رویدادها ابتدا وارد حالت مدیریت شوید."; $("loginPanel").classList.remove("hidden"); $("adminPanel").classList.add("hidden"); githubOwner.value="zahrar87"; githubRepo.value="exir_calendar"; githubBranch.value="main"; githubToken.value=""; syncStatus.textContent=""; }
-function showAdminPanel(s){ $("syncTitle").textContent="مدیریت تقویم"; $("syncDescription").textContent="شما وارد شده‌اید. تغییرات رویدادها به‌صورت خودکار به GitHub ذخیره می‌شوند."; $("loginPanel").classList.add("hidden"); $("adminPanel").classList.remove("hidden"); $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`; $("adminSyncStatus").textContent="آماده"; }
+function showLoginPanel(){ updateModeButton(); $("syncTitle").textContent="ورود مدیر"; $("syncDescription").textContent="برای تغییر رویدادها ابتدا وارد حالت مدیریت شوید."; $("loginPanel").classList.remove("hidden"); $("adminPanel").classList.add("hidden"); githubOwner.value="zahrar87"; githubRepo.value="exir_calendar"; githubBranch.value="main"; githubToken.value=""; syncStatus.textContent=""; }
+function showAdminPanel(s){ updateModeButton(); $("syncTitle").textContent="مدیریت تقویم"; $("syncDescription").textContent="شما وارد شده‌اید. تغییرات رویدادها به‌صورت خودکار به GitHub ذخیره می‌شوند."; $("loginPanel").classList.add("hidden"); $("adminPanel").classList.remove("hidden"); $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`; $("adminSyncStatus").textContent="آماده"; }
 function closeSyncModal() {
   syncModal.classList.add("hidden");
 }
 
-function enterAdminMode(){document.body.classList.remove("view-mode");$("modeBtn").textContent="حالت نمایش";}
-function enterViewMode(){document.body.classList.add("view-mode");$("modeBtn").textContent="حالت مدیریت";showToast("حالت نمایش فعال شد");}
-function logout(){sessionStorage.removeItem(GITHUB_SESSION_KEY);enterViewMode();closeSyncModal();showToast("از حالت مدیریت خارج شدید");}
+function updateModeButton(){
+  const loggedIn = !!getGithubSession();
+  const isView = document.body.classList.contains("view-mode");
+  $("modeBtn").textContent = isView ? "حالت مدیریت" : "حالت نمایش";
+  $("syncBtn").textContent = loggedIn ? "مدیریت / همگام‌سازی" : "ورود مدیر";
+}
+function enterAdminMode(){
+  if (!getGithubSession()) { showToast("ابتدا از «ورود مدیر» وارد شوید"); return; }
+  document.body.classList.remove("view-mode");
+  updateModeButton();
+  showToast("حالت مدیریت فعال شد");
+}
+function enterViewMode(){
+  document.body.classList.add("view-mode");
+  updateModeButton();
+  showToast("حالت نمایش فعال شد");
+}
+function logout(){sessionStorage.removeItem(GITHUB_SESSION_KEY);enterViewMode();closeSyncModal();updateModeButton();showToast("از حالت مدیریت خارج شدید");}
 async function refreshFromGithub(){const s=getGithubSession();if(!s)return;$("adminSyncStatus").textContent="در حال دریافت از GitHub...";try{const remote=await githubGetFile(s);if(remote?.data){data=normalizeData(remote.data);saveLocal();render();$("adminSyncStatus").textContent="آخرین اطلاعات GitHub دریافت شد.";}else $("adminSyncStatus").textContent="calendar.json در GitHub وجود ندارد.";}catch(err){$("adminSyncStatus").textContent=`خطا: ${err.message}`;}}
 
 async function connectGithub() {
@@ -393,22 +431,33 @@ async function connectGithub() {
       data = normalizeData(remote.data);
       saveLocal();
       render();
-      syncStatus.textContent = "تقویم از GitHub دریافت شد."; enterAdminMode(); showAdminPanel(s); showToast("وارد حالت مدیریت شدید");
+      syncStatus.textContent = "تقویم از GitHub دریافت شد."; enterAdminMode(); showAdminPanel(s); updateModeButton();
     } else {
       syncStatus.textContent = "فایل calendar.json پیدا نشد؛ یک فایل جدید ساخته خواهد شد.";
       await githubPutFile(s, data, "Create calendar data");
-      syncStatus.textContent = "فایل calendar.json ساخته شد."; enterAdminMode(); showAdminPanel(s); showToast("وارد حالت مدیریت شدید");
+      syncStatus.textContent = "فایل calendar.json ساخته شد."; enterAdminMode(); showAdminPanel(s); updateModeButton();
     }
   } catch (err) {
     sessionStorage.removeItem(GITHUB_SESSION_KEY);
-    syncStatus.textContent = `خطا: ${err.message}`;
+    updateModeButton();
+    syncStatus.textContent = githubErrorMessage(err);
   }
+}
+
+function githubErrorMessage(err) {
+  const msg = String(err?.message || err);
+  if (msg.includes("GitHub 401")) return "توکن GitHub معتبر نیست یا منقضی شده است.";
+  if (msg.includes("GitHub 403")) return "GitHub دسترسی را رد کرد. دسترسی Contents روی همین repository را بررسی کنید.";
+  if (msg.includes("GitHub 404")) return "repository یا branch پیدا نشد. نام repository و branch را بررسی کنید.";
+  if (msg.includes("GitHub 409")) return "GitHub با تغییر همزمان مواجه شد. دوباره تلاش کنید.";
+  return `خطا در GitHub: ${msg}`;
 }
 
 function clearGithubSession() {
   sessionStorage.removeItem(GITHUB_SESSION_KEY);
   githubToken.value = "";
   syncStatus.textContent = "اطلاعات ورود از این مرورگر پاک شد.";
+  updateModeButton();
   showToast("ورود GitHub پاک شد");
 }
 
@@ -490,16 +539,17 @@ function normalizeData(value) {
 /* ---------- Jalali calendar ---------- */
 
 function todayJalali() {
-  // Always use Tehran/Iran time for "today", regardless of the visitor's computer timezone.
-  const parts = new Intl.DateTimeFormat("en-US", {
+  // Use the browser's built-in Persian calendar, but force the date/time zone to Tehran.
+  // This avoids the old conversion routine's one-day offset.
+  const parts = new Intl.DateTimeFormat("en-US-u-ca-persian", {
     timeZone: TEHRAN_TZ,
     year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
+    month: "numeric",
+    day: "numeric"
   }).formatToParts(new Date());
 
   const get = type => Number(parts.find(p => p.type === type).value);
-  return gregorianToJalaliFromNumbers(get("year"), get("month"), get("day"));
+  return {year: get("year"), month: get("month"), day: get("day")};
 }
 
 function gregorianToJalaliFromNumbers(gy, gm, gd) {
