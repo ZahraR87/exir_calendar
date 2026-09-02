@@ -25,6 +25,7 @@ const TEHRAN_TZ = "Asia/Tehran";
 let current = todayJalali();
 let data = loadData();
 let selectedJalaliDate = null;
+let modalWasOffDay = false;
 let toastTimer = null;
 
 const $ = id => document.getElementById(id);
@@ -36,6 +37,7 @@ const eventModal = $("eventModal");
 const eventForm = $("eventForm");
 const eventId = $("eventId");
 const eventTitle = $("eventTitle");
+const eventPhone = $("eventPhone");
 const eventDescription = $("eventDescription");
 const eventStartTime = $("eventStartTime");
 const eventEndTime = $("eventEndTime");
@@ -69,12 +71,7 @@ function init() {
   $("todayBtn").addEventListener("click", () => { current = todayJalali(); render(); });
   $("printBtn").addEventListener("click", () => window.print());
 
-  $("modeBtn").addEventListener("click", () => {
-    const session = getGithubSession();
-    if (!session) {
-      showToast("برای ورود به مدیریت، از دکمه «ورود مدیر» استفاده کنید");
-      return;
-    }
+  $("adminModeToggle").addEventListener("click", () => {
     if (document.body.classList.contains("view-mode")) enterAdminMode();
     else enterViewMode();
   });
@@ -87,7 +84,6 @@ function init() {
   $("saveGithubBtn").addEventListener("click", connectGithub);
   $("saveGithubManualBtn").addEventListener("click", manualSaveToGithub);
   $("logoutBtn").addEventListener("click", logout);
-  $("refreshGithubBtn").addEventListener("click", refreshFromGithub);
   $("closeAdminBtn").addEventListener("click", closeSyncModal);
   $("offDay").addEventListener("change", toggleOffDayFields);
   eventForm.addEventListener("submit", saveEvent);
@@ -211,6 +207,7 @@ function openDayModal(dateKey) {
   selectedJalaliDate = parseDateKey(dateKey);
   eventId.value = "";
   eventTitle.value = "";
+  eventPhone.value = "";
   eventDescription.value = "";
   eventStartTime.value = "";
   eventEndTime.value = "";
@@ -218,6 +215,7 @@ function openDayModal(dateKey) {
   selectColor("blue");
 
   const off = data.offDays.includes(dateKey);
+  modalWasOffDay = off;
   offDay.checked = off;
   toggleOffDayFields();
 
@@ -233,13 +231,15 @@ function openEditModal(ev) {
   selectedJalaliDate = parseDateKey(ev.date);
   eventId.value = ev.id;
   eventTitle.value = ev.title;
+  eventPhone.value = ev.phone || "";
   eventDescription.value = ev.description || "";
   eventStartTime.value = ev.startTime || "";
   eventEndTime.value = ev.endTime || "";
   eventColor.value = ev.color || "blue";
   selectColor(eventColor.value);
 
-  offDay.checked = data.offDays.includes(ev.date);
+  modalWasOffDay = data.offDays.includes(ev.date);
+  offDay.checked = modalWasOffDay;
   toggleOffDayFields();
 
   modalTitle.textContent = "ویرایش رویداد";
@@ -252,7 +252,8 @@ function openEditModal(ev) {
 
 function toggleOffDayFields() {
   eventFields.classList.toggle("hidden", offDay.checked);
-  eventTitle.required = !offDay.checked;
+  // The title is validated manually so an existing off-day can be cleared without filling the form.
+  eventTitle.required = false;
 }
 
 function closeModal() {
@@ -266,58 +267,62 @@ function saveEvent(e) {
   if (!selectedJalaliDate) return;
 
   const dateKey = makeDateKey(selectedJalaliDate.year, selectedJalaliDate.month, selectedJalaliDate.day);
-
-  // Off-day is a property of the whole date.
-  if (offDay.checked) {
-    if (!data.offDays.includes(dateKey)) data.offDays.push(dateKey);
-  } else {
-    data.offDays = data.offDays.filter(d => d !== dateKey);
-  }
-
   const id = eventId.value;
   const existing = data.events.findIndex(ev => ev.id === id);
+  const title = eventTitle.value.trim();
 
+  // Marking a day as off never requires any other field.
   if (offDay.checked) {
-    // Do not create an event when the user is only marking the day off.
+    if (!data.offDays.includes(dateKey)) data.offDays.push(dateKey);
     if (existing >= 0) data.events.splice(existing, 1);
     saveLocal();
     closeModal();
     render();
     showToast("روز به‌عنوان تعطیل ذخیره شد");
-    syncIfConfigured();
     return;
   }
 
-  const title = eventTitle.value.trim();
-  if (!title) return;
+  // If this day was already an off-day, unchecking the switch alone is enough to make it available again.
+  if (modalWasOffDay && !title) {
+    data.offDays = data.offDays.filter(d => d !== dateKey);
+    saveLocal();
+    closeModal();
+    render();
+    showToast("تعطیلی روز حذف شد");
+    return;
+  }
+
+  if (!title) {
+    showToast("لطفاً عنوان رویداد را وارد کنید");
+    eventTitle.focus();
+    return;
+  }
 
   if (eventStartTime.value && eventEndTime.value && eventEndTime.value < eventStartTime.value) {
     showToast("زمان پایان نمی‌تواند قبل از زمان شروع باشد");
     return;
   }
 
+  data.offDays = data.offDays.filter(d => d !== dateKey);
+
   const item = {
     id: id || crypto.randomUUID(),
     date: dateKey,
     title,
+    phone: eventPhone.value.trim(),
     description: eventDescription.value.trim(),
     startTime: eventStartTime.value,
     endTime: eventEndTime.value,
-    color: eventColor.value
+    color: eventColor.value || "blue"
   };
 
-  if (existing >= 0) {
-    data.events[existing] = item;
-    showToast("رویداد ویرایش شد");
-  } else {
-    data.events.push(item);
-    showToast("رویداد اضافه شد");
-  }
+  if (existing >= 0) data.events[existing] = item;
+  else data.events.push(item);
 
   saveLocal();
   closeModal();
   render();
-  syncIfConfigured();
+  showToast(id ? "رویداد ویرایش شد" : "رویداد اضافه شد");
 }
 
 function deleteEvent() {
@@ -330,7 +335,6 @@ function deleteEvent() {
   closeModal();
   render();
   showToast("رویداد حذف شد");
-  syncIfConfigured();
 }
 
 function buildColorPicker() {
@@ -383,9 +387,36 @@ function getGithubSession() {
   catch { return null; }
 }
 
-function openSyncModal() { const s=getGithubSession(); if(s) showAdminPanel(s); else showLoginPanel(); syncModal.classList.remove("hidden"); }
-function showLoginPanel(){ updateModeButton(); $("syncTitle").textContent="ورود مدیر"; $("syncDescription").textContent="برای تغییر رویدادها ابتدا وارد حالت مدیریت شوید."; $("loginPanel").classList.remove("hidden"); $("adminPanel").classList.add("hidden"); githubOwner.value="zahrar87"; githubRepo.value="exir_calendar"; githubBranch.value="main"; githubToken.value=""; syncStatus.textContent=""; }
-function showAdminPanel(s){ updateModeButton(); $("syncTitle").textContent="مدیریت تقویم"; $("syncDescription").textContent="شما وارد شده‌اید. تغییرات رویدادها به‌صورت خودکار به GitHub ذخیره می‌شوند."; $("loginPanel").classList.add("hidden"); $("adminPanel").classList.remove("hidden"); $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`; $("adminSyncStatus").textContent="آماده"; }
+function openSyncModal() {
+  const s = getGithubSession();
+  if (s) showAdminPanel(s);
+  else showLoginPanel();
+  syncModal.classList.remove("hidden");
+  updateModeButton();
+}
+
+function showLoginPanel(){
+  $("syncTitle").textContent="ورود مدیر";
+  $("syncDescription").textContent="برای تغییر رویدادها ابتدا وارد حالت مدیریت شوید.";
+  $("loginPanel").classList.remove("hidden");
+  $("adminPanel").classList.add("hidden");
+  githubOwner.value="zahrar87";
+  githubRepo.value="exir_calendar";
+  githubBranch.value="main";
+  githubToken.value="";
+  syncStatus.textContent="";
+}
+
+function showAdminPanel(s){
+  $("syncTitle").textContent="مدیریت تقویم";
+  $("syncDescription").textContent="شما وارد شده‌اید. ابتدا با کلید زیر حالت مدیریت را فعال کنید.";
+  $("loginPanel").classList.add("hidden");
+  $("adminPanel").classList.remove("hidden");
+  $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`;
+  $("adminSyncStatus").textContent="آماده";
+  updateModeButton();
+}
+
 function closeSyncModal() {
   syncModal.classList.add("hidden");
 }
@@ -393,22 +424,33 @@ function closeSyncModal() {
 function updateModeButton(){
   const loggedIn = !!getGithubSession();
   const isView = document.body.classList.contains("view-mode");
-  $("modeBtn").textContent = isView ? "حالت مدیریت" : "حالت نمایش";
-  $("syncBtn").textContent = loggedIn ? "مدیریت / همگام‌سازی" : "ورود مدیر";
+  $("syncBtn").textContent = loggedIn ? "مدیریت" : "ورود مدیر";
+  const toggle = $("adminModeToggle");
+  const status = $("adminModeStatus");
+  if (toggle) toggle.textContent = isView ? "حالت مدیریت" : "حالت نمایش";
+  if (status) status.textContent = isView ? "حالت نمایش فعال است" : "حالت مدیریت فعال است";
 }
+
 function enterAdminMode(){
   if (!getGithubSession()) { showToast("ابتدا از «ورود مدیر» وارد شوید"); return; }
   document.body.classList.remove("view-mode");
   updateModeButton();
   showToast("حالت مدیریت فعال شد");
 }
+
 function enterViewMode(){
   document.body.classList.add("view-mode");
   updateModeButton();
   showToast("حالت نمایش فعال شد");
 }
-function logout(){sessionStorage.removeItem(GITHUB_SESSION_KEY);enterViewMode();closeSyncModal();updateModeButton();showToast("از حالت مدیریت خارج شدید");}
-async function refreshFromGithub(){const s=getGithubSession();if(!s)return;$("adminSyncStatus").textContent="در حال دریافت از GitHub...";try{const remote=await githubGetFile(s);if(remote?.data){data=normalizeData(remote.data);saveLocal();render();$("adminSyncStatus").textContent="آخرین اطلاعات GitHub دریافت شد.";}else $("adminSyncStatus").textContent="calendar.json در GitHub وجود ندارد.";}catch(err){$("adminSyncStatus").textContent=`خطا: ${err.message}`;}}
+
+function logout(){
+  sessionStorage.removeItem(GITHUB_SESSION_KEY);
+  enterViewMode();
+  closeSyncModal();
+  updateModeButton();
+  showToast("از حالت مدیریت خارج شدید");
+}
 
 async function connectGithub() {
   const owner = githubOwner.value.trim();
@@ -425,18 +467,18 @@ async function connectGithub() {
 
   try {
     const s = {owner, repo, branch, token};
-    sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
-
     const remote = await githubGetFile(s);
     if (remote?.data) {
       data = normalizeData(remote.data);
       saveLocal();
       render();
-      syncStatus.textContent = "تقویم از GitHub دریافت شد."; enterAdminMode(); showAdminPanel(s); updateModeButton();
+      sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
+      syncStatus.textContent = "تقویم از GitHub دریافت شد.";
+      showAdminPanel(s);
     } else {
-      syncStatus.textContent = "فایل calendar.json پیدا نشد؛ یک فایل جدید ساخته خواهد شد.";
-      await githubPutFile(s, data, "Create calendar data");
-      syncStatus.textContent = "فایل calendar.json ساخته شد."; enterAdminMode(); showAdminPanel(s); updateModeButton();
+      sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
+      syncStatus.textContent = "calendar.json هنوز در GitHub وجود ندارد. بعد از ورود، با «ذخیره در GitHub» آن را ایجاد کنید.";
+      showAdminPanel(s);
     }
   } catch (err) {
     sessionStorage.removeItem(GITHUB_SESSION_KEY);
@@ -454,11 +496,13 @@ async function manualSaveToGithub() {
   const button = $("saveGithubManualBtn");
   const status = $("adminSyncStatus");
   const pill = $("saveStatusPill");
+
   githubSaveInProgress = true;
   button.disabled = true;
   button.textContent = "در حال ذخیره...";
   if (pill) pill.textContent = "در حال ذخیره...";
   if (status) status.textContent = "در حال ذخیره آخرین تغییرات در GitHub...";
+
   try {
     await githubPutFile(s, data, "Update calendar data");
     if (pill) pill.textContent = "همگام";
@@ -490,17 +534,6 @@ function clearGithubSession() {
   syncStatus.textContent = "اطلاعات ورود از این مرورگر پاک شد.";
   updateModeButton();
   showToast("ورود GitHub پاک شد");
-}
-
-async function syncIfConfigured() {
-  const s = getGithubSession();
-  if (!s) return;
-
-  try {
-    $("saveStatusPill").textContent="در حال ذخیره..."; await githubPutFile(s, data, "Update calendar data"); $("saveStatusPill").textContent="همگام"; showToast("در GitHub ذخیره شد");
-  } catch (err) {
-    console.error(err); if($("saveStatusPill")) $("saveStatusPill").textContent="خطا در GitHub"; showToast("ذخیره محلی انجام شد؛ GitHub خطا داد");
-  }
 }
 
 async function githubGetFile(s) {
