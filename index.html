@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>تقویم بازدید گلخانه بلوبری</title>
+  <title>تقویم شمسی</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -16,7 +16,7 @@
       <div class="top-actions">
         <button class="button secondary" id="todayBtn">امروز</button>
         <button class="button secondary" id="printBtn">🖨 چاپ</button>
-        <button class="button secondary" id="syncBtn">☁ همگام‌سازی</button>
+        <button class="button secondary" id="syncBtn">ورود مدیر</button>
         <button class="button primary" id="modeBtn">حالت نمایش</button>
       </div>
     </header>
@@ -65,7 +65,7 @@
         <div id="eventFields">
           <label>
             عنوان
-            <input id="eventTitle" type="text" maxlength="80" required autocomplete="off">
+            <input id="eventTitle" type="text" maxlength="80" required placeholder="مثلاً جلسه، تولد، قرار..." autocomplete="off">
           </label>
 
           <label>
@@ -102,51 +102,25 @@
     </div>
   </div>
 
-  <!-- GitHub sync -->
+  <!-- Admin login / sync -->
   <div class="modal-backdrop hidden" id="syncModal">
     <div class="modal sync-modal" role="dialog" aria-modal="true">
       <button class="modal-close" id="closeSyncBtn" aria-label="بستن">×</button>
-      <div class="modal-header">
-        <div class="eyebrow">ذخیره‌سازی مشترک</div>
-        <h3>همگام‌سازی با GitHub</h3>
-        <p>این بخش برای مدیر سایت است. اطلاعات ورود در کد سایت قرار نمی‌گیرد.</p>
+      <div class="modal-header"><div class="eyebrow">مدیریت تقویم</div><h3 id="syncTitle">ورود مدیر</h3><p id="syncDescription">برای تغییر رویدادها ابتدا وارد حالت مدیریت شوید.</p></div>
+      <div id="loginPanel">
+        <label>نام کاربری GitHub<input id="githubOwner" placeholder="zahrar87" autocomplete="username"></label>
+        <label>نام repository<input id="githubRepo" placeholder="exir_calendar"></label>
+        <label>Branch<input id="githubBranch" value="main"></label>
+        <label>GitHub Personal Access Token<input id="githubToken" type="password" placeholder="github_pat_..." autocomplete="off"></label>
+        <div class="info-box">این ورود فقط برای همین مرورگر و همین نشست نگهداری می‌شود. برای امنیت، از Fine-grained token با دسترسی فقط <strong>Contents: Read and write</strong> روی همین repository استفاده کنید.</div>
+        <div class="sync-status" id="syncStatus"></div>
+        <div class="form-actions"><div></div><div class="form-actions-right"><button type="button" class="button secondary" id="cancelSyncBtn">لغو</button><button type="button" class="button primary" id="saveGithubBtn">ورود و بارگذاری</button></div></div>
       </div>
-
-      <div class="info-box">
-        برای این نسخه، GitHub به‌عنوان محل ذخیره رویدادها استفاده می‌شود.
-        یک Fine-grained Personal Access Token بسازید که فقط دسترسی
-        <strong>Contents: Read and write</strong> به همین repository داشته باشد.
-        توکن فقط در همین مرورگر و در <strong>session</strong> نگهداری می‌شود.
-      </div>
-
-      <label>
-        نام کاربری GitHub
-        <input id="githubOwner" placeholder="مثلاً zahrar87" autocomplete="username">
-      </label>
-
-      <label>
-        نام repository
-        <input id="githubRepo" placeholder="مثلاً exir_calendar">
-      </label>
-
-      <label>
-        Branch
-        <input id="githubBranch" value="main">
-      </label>
-
-      <label>
-        GitHub Personal Access Token
-        <input id="githubToken" type="password" placeholder="github_pat_..." autocomplete="off">
-      </label>
-
-      <div class="sync-status" id="syncStatus"></div>
-
-      <div class="form-actions">
-        <button type="button" class="button danger" id="clearGithubBtn">پاک کردن ورود</button>
-        <div class="form-actions-right">
-          <button type="button" class="button secondary" id="cancelSyncBtn">لغو</button>
-          <button type="button" class="button primary" id="saveGithubBtn">ذخیره و دریافت</button>
-        </div>
+      <div id="adminPanel" class="hidden">
+        <div class="admin-status-card"><div><strong>حالت مدیریت فعال است</strong><span id="adminRepoLabel"></span></div><span class="status-pill" id="saveStatusPill">همگام</span></div>
+        <div class="info-box">هر بار که رویدادی اضافه، ویرایش یا حذف می‌کنید، اطلاعات ابتدا در مرورگر ذخیره می‌شود و سپس <strong>به‌صورت خودکار به GitHub ارسال می‌شود.</strong> تا وقتی پیام «در GitHub ذخیره شد» را نبینید، تغییر را قطعی ذخیره‌شده روی GitHub در نظر نگیرید.</div>
+        <div class="sync-status" id="adminSyncStatus"></div>
+        <div class="form-actions"><button type="button" class="button danger" id="logoutBtn">خروج مدیر</button><div class="form-actions-right"><button type="button" class="button secondary" id="refreshGithubBtn">دریافت از GitHub</button><button type="button" class="button primary" id="closeAdminBtn">بستن</button></div></div>
       </div>
     </div>
   </div>

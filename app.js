@@ -55,10 +55,12 @@ const githubBranch = $("githubBranch");
 const githubToken = $("githubToken");
 const syncStatus = $("syncStatus");
 
+document.body.classList.add("view-mode");
 init();
 
 function init() {
   buildColorPicker();
+  $("modeBtn").textContent = "حالت مدیریت";
   render();
 
   $("prevMonthBtn").addEventListener("click", () => { current = addJalaliMonths(current, -1); render(); });
@@ -67,10 +69,9 @@ function init() {
   $("printBtn").addEventListener("click", () => window.print());
 
   $("modeBtn").addEventListener("click", () => {
-    document.body.classList.toggle("view-mode");
-    const viewing = document.body.classList.contains("view-mode");
-    $("modeBtn").textContent = viewing ? "حالت مدیریت" : "حالت نمایش";
-    showToast(viewing ? "حالت نمایش فعال شد" : "حالت مدیریت فعال شد");
+    const session = getGithubSession();
+    if (document.body.classList.contains("view-mode")) { if (session) enterAdminMode(); else openSyncModal(); }
+    else enterViewMode();
   });
 
   $("syncBtn").addEventListener("click", openSyncModal);
@@ -79,7 +80,9 @@ function init() {
   $("closeSyncBtn").addEventListener("click", closeSyncModal);
   $("cancelSyncBtn").addEventListener("click", closeSyncModal);
   $("saveGithubBtn").addEventListener("click", connectGithub);
-  $("clearGithubBtn").addEventListener("click", clearGithubSession);
+  $("logoutBtn").addEventListener("click", logout);
+  $("refreshGithubBtn").addEventListener("click", refreshFromGithub);
+  $("closeAdminBtn").addEventListener("click", closeSyncModal);
   $("offDay").addEventListener("change", toggleOffDayFields);
   eventForm.addEventListener("submit", saveEvent);
   deleteEventBtn.addEventListener("click", deleteEvent);
@@ -149,13 +152,6 @@ function render() {
     number.className = "day-number";
     number.textContent = toPersianDigits(day);
     cell.appendChild(number);
-
-    if (isOff) {
-      const badge = document.createElement("span");
-      badge.className = "off-badge";
-      badge.textContent = "تعطیل";
-      cell.appendChild(badge);
-    }
 
     const hint = document.createElement("div");
     hint.className = "add-hint";
@@ -363,27 +359,17 @@ function getGithubSession() {
   catch { return null; }
 }
 
-function openSyncModal() {
-  const s = getGithubSession();
-  if (s) {
-    githubOwner.value = s.owner || "";
-    githubRepo.value = s.repo || "";
-    githubBranch.value = s.branch || "main";
-    githubToken.value = s.token || "";
-    syncStatus.textContent = "ورود GitHub برای این نشست ذخیره شده است.";
-  } else {
-    githubOwner.value = "zahrar87";
-    githubRepo.value = "exir_calendar";
-    githubBranch.value = "main";
-    githubToken.value = "";
-    syncStatus.textContent = "";
-  }
-  syncModal.classList.remove("hidden");
-}
-
+function openSyncModal() { const s=getGithubSession(); if(s) showAdminPanel(s); else showLoginPanel(); syncModal.classList.remove("hidden"); }
+function showLoginPanel(){ $("syncTitle").textContent="ورود مدیر"; $("syncDescription").textContent="برای تغییر رویدادها ابتدا وارد حالت مدیریت شوید."; $("loginPanel").classList.remove("hidden"); $("adminPanel").classList.add("hidden"); githubOwner.value="zahrar87"; githubRepo.value="exir_calendar"; githubBranch.value="main"; githubToken.value=""; syncStatus.textContent=""; }
+function showAdminPanel(s){ $("syncTitle").textContent="مدیریت تقویم"; $("syncDescription").textContent="شما وارد شده‌اید. تغییرات رویدادها به‌صورت خودکار به GitHub ذخیره می‌شوند."; $("loginPanel").classList.add("hidden"); $("adminPanel").classList.remove("hidden"); $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`; $("adminSyncStatus").textContent="آماده"; }
 function closeSyncModal() {
   syncModal.classList.add("hidden");
 }
+
+function enterAdminMode(){document.body.classList.remove("view-mode");$("modeBtn").textContent="حالت نمایش";}
+function enterViewMode(){document.body.classList.add("view-mode");$("modeBtn").textContent="حالت مدیریت";showToast("حالت نمایش فعال شد");}
+function logout(){sessionStorage.removeItem(GITHUB_SESSION_KEY);enterViewMode();closeSyncModal();showToast("از حالت مدیریت خارج شدید");}
+async function refreshFromGithub(){const s=getGithubSession();if(!s)return;$("adminSyncStatus").textContent="در حال دریافت از GitHub...";try{const remote=await githubGetFile(s);if(remote?.data){data=normalizeData(remote.data);saveLocal();render();$("adminSyncStatus").textContent="آخرین اطلاعات GitHub دریافت شد.";}else $("adminSyncStatus").textContent="calendar.json در GitHub وجود ندارد.";}catch(err){$("adminSyncStatus").textContent=`خطا: ${err.message}`;}}
 
 async function connectGithub() {
   const owner = githubOwner.value.trim();
@@ -407,13 +393,11 @@ async function connectGithub() {
       data = normalizeData(remote.data);
       saveLocal();
       render();
-      syncStatus.textContent = "تقویم از GitHub دریافت شد.";
-      showToast("اطلاعات GitHub دریافت شد");
+      syncStatus.textContent = "تقویم از GitHub دریافت شد."; enterAdminMode(); showAdminPanel(s); showToast("وارد حالت مدیریت شدید");
     } else {
       syncStatus.textContent = "فایل calendar.json پیدا نشد؛ یک فایل جدید ساخته خواهد شد.";
       await githubPutFile(s, data, "Create calendar data");
-      syncStatus.textContent = "فایل calendar.json ساخته شد.";
-      showToast("ذخیره‌سازی GitHub آماده شد");
+      syncStatus.textContent = "فایل calendar.json ساخته شد."; enterAdminMode(); showAdminPanel(s); showToast("وارد حالت مدیریت شدید");
     }
   } catch (err) {
     sessionStorage.removeItem(GITHUB_SESSION_KEY);
@@ -433,11 +417,9 @@ async function syncIfConfigured() {
   if (!s) return;
 
   try {
-    await githubPutFile(s, data, "Update calendar data");
-    showToast("در GitHub ذخیره شد");
+    $("saveStatusPill").textContent="در حال ذخیره..."; await githubPutFile(s, data, "Update calendar data"); $("saveStatusPill").textContent="همگام"; showToast("در GitHub ذخیره شد");
   } catch (err) {
-    console.error(err);
-    showToast("ذخیره محلی انجام شد؛ GitHub خطا داد");
+    console.error(err); if($("saveStatusPill")) $("saveStatusPill").textContent="خطا در GitHub"; showToast("ذخیره محلی انجام شد؛ GitHub خطا داد");
   }
 }
 
