@@ -17,7 +17,6 @@
         <button class="button secondary" id="todayBtn">امروز</button>
         <button class="button secondary" id="printBtn">🖨 چاپ</button>
         <button class="button secondary" id="syncBtn">ورود مدیر</button>
-        <button class="button primary" id="modeBtn">حالت مدیریت</button>
       </div>
     </header>
 
@@ -69,6 +68,11 @@
           </label>
 
           <label>
+            شماره تلفن
+            <input id="eventPhone" type="tel" maxlength="30" placeholder="" autocomplete="tel" inputmode="tel">
+          </label>
+
+          <label>
             توضیحات
             <textarea id="eventDescription" maxlength="500" rows="4" placeholder="توضیحات اختیاری"></textarea>
           </label>
@@ -117,7 +121,8 @@
         <div class="form-actions"><div></div><div class="form-actions-right"><button type="button" class="button secondary" id="cancelSyncBtn">لغو</button><button type="button" class="button primary" id="saveGithubBtn">ورود و بارگذاری</button></div></div>
       </div>
       <div id="adminPanel" class="hidden">
-        <div class="admin-status-card"><div><strong>حالت مدیریت فعال است</strong><span id="adminRepoLabel"></span></div><span class="status-pill" id="saveStatusPill">همگام</span></div>
+        <div class="admin-status-card"><div><strong id="adminModeStatus">حالت نمایش فعال است</strong><span id="adminRepoLabel"></span></div><span class="status-pill" id="saveStatusPill">همگام</span></div>
+        <div class="manage-tools"><div class="manage-tool-group"><div class="manage-tool-title">حالت تقویم</div><div class="manage-tool-buttons"><button type="button" class="button primary" id="adminModeToggle">حالت مدیریت</button></div></div></div>
         <div class="info-box">تغییرات شما ابتدا فقط در همین مرورگر ذخیره می‌شوند. وقتی کارتان تمام شد، «ذخیره در GitHub» را بزنید تا آخرین نسخه برای همه منتشر شود.</div>
         <div class="manage-tools">
           <div class="manage-tool-group">
