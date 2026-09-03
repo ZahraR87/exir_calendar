@@ -71,19 +71,14 @@ function init() {
   $("todayBtn").addEventListener("click", () => { current = todayJalali(); render(); });
   $("printBtn").addEventListener("click", () => window.print());
 
-  $("adminModeToggle").addEventListener("click", () => {
-    if (document.body.classList.contains("view-mode")) enterAdminMode();
-    else enterViewMode();
-  });
-
   $("syncBtn").addEventListener("click", openSyncModal);
   $("closeModalBtn").addEventListener("click", closeModal);
   $("cancelBtn").addEventListener("click", closeModal);
   $("closeSyncBtn").addEventListener("click", closeSyncModal);
   $("cancelSyncBtn").addEventListener("click", closeSyncModal);
   $("saveGithubBtn").addEventListener("click", connectGithub);
-  $("saveGithubManualBtn").addEventListener("click", manualSaveToGithub);
   $("logoutBtn").addEventListener("click", logout);
+  $("saveGithubManualBtn").addEventListener("click", manualSaveToGithub);
   $("closeAdminBtn").addEventListener("click", closeSyncModal);
   $("offDay").addEventListener("change", toggleOffDayFields);
   eventForm.addEventListener("submit", saveEvent);
@@ -187,7 +182,11 @@ function render() {
 
         eventEl.addEventListener("click", e => {
           e.stopPropagation();
-          if (!document.body.classList.contains("view-mode")) openEditModal(ev);
+          if (!document.body.classList.contains("view-mode")) {
+            openEditModal(ev);
+          } else {
+            showEventDescription(ev);
+          }
         });
 
         eventsContainer.appendChild(eventEl);
@@ -325,6 +324,21 @@ function saveEvent(e) {
   showToast(id ? "رویداد ویرایش شد" : "رویداد اضافه شد");
 }
 
+function showEventDescription(ev) {
+  const phone = (ev.phone || "").trim();
+  const description = (ev.description || "").trim();
+
+  if (phone && description) {
+    showToast(`${ev.title}: ${phone} — ${description}`);
+  } else if (phone) {
+    showToast(`${ev.title}: ${phone}`);
+  } else if (description) {
+    showToast(`${ev.title}: ${description}`);
+  } else {
+    showToast("برای این رویداد شماره تلفن یا توضیحی ثبت نشده است");
+  }
+}
+
 function deleteEvent() {
   const id = eventId.value;
   if (!id) return;
@@ -389,8 +403,12 @@ function getGithubSession() {
 
 function openSyncModal() {
   const s = getGithubSession();
-  if (s) showAdminPanel(s);
-  else showLoginPanel();
+  if (s) {
+    enterAdminMode();
+    showAdminPanel(s);
+  } else {
+    showLoginPanel();
+  }
   syncModal.classList.remove("hidden");
   updateModeButton();
 }
@@ -409,7 +427,7 @@ function showLoginPanel(){
 
 function showAdminPanel(s){
   $("syncTitle").textContent="مدیریت تقویم";
-  $("syncDescription").textContent="شما وارد شده‌اید. ابتدا با کلید زیر حالت مدیریت را فعال کنید.";
+  $("syncDescription").textContent="شما وارد شده‌اید و حالت مدیریت فعال است.";
   $("loginPanel").classList.add("hidden");
   $("adminPanel").classList.remove("hidden");
   $("adminRepoLabel").textContent=`${s.owner}/${s.repo}`;
@@ -423,12 +441,7 @@ function closeSyncModal() {
 
 function updateModeButton(){
   const loggedIn = !!getGithubSession();
-  const isView = document.body.classList.contains("view-mode");
   $("syncBtn").textContent = loggedIn ? "مدیریت" : "ورود مدیر";
-  const toggle = $("adminModeToggle");
-  const status = $("adminModeStatus");
-  if (toggle) toggle.textContent = isView ? "حالت مدیریت" : "حالت نمایش";
-  if (status) status.textContent = isView ? "حالت نمایش فعال است" : "حالت مدیریت فعال است";
 }
 
 function enterAdminMode(){
@@ -473,10 +486,12 @@ async function connectGithub() {
       saveLocal();
       render();
       sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
+      enterAdminMode();
       syncStatus.textContent = "تقویم از GitHub دریافت شد.";
       showAdminPanel(s);
     } else {
       sessionStorage.setItem(GITHUB_SESSION_KEY, JSON.stringify(s));
+      enterAdminMode();
       syncStatus.textContent = "calendar.json هنوز در GitHub وجود ندارد. بعد از ورود، با «ذخیره در GitHub» آن را ایجاد کنید.";
       showAdminPanel(s);
     }
